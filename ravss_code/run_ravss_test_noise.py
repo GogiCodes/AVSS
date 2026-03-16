@@ -31,7 +31,7 @@ import soundfile as sf
 #import dataset_lrs3 as dataset 
 #import dataset_target as dataset
 #import dataset_condition_target_val as dataset
-import dataset_condition_target_val_noise as dataset
+import dataset as dataset
 import models
 import utils
 import criterion as losses
@@ -116,10 +116,10 @@ def test(local_rank, config_parameters):
         if "cuda" in device.type:
             config_parameters["cuda device name"] = torch.cuda.get_device_name(local_rank)
   
-    test_df = config_parameters['test_scp']
+    # test_df = config_parameters['test_scp']
     ds_root = config_parameters['dataset_root_path']
     
-    test_ds = dataset.Vox2_Dataset(config_parameters['mix_num'],test_df, ds_root, dstype='test',batch_size = config_parameters['batch_size'])
+    test_ds = dataset.New_Dataset(config_parameters['mix_num'], ds_root, dstype='test',batch_size = config_parameters['batch_size'])
     nproc = idist.get_nproc_per_node() #batch_size on each node
     test_loader = idist.auto_dataloader(test_ds, batch_size=nproc, num_workers=config_parameters['num_workers'] * nproc, shuffle=False, drop_last=True, collate_fn = dataset.dummy_collate_fn)
 

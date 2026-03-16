@@ -1,19 +1,25 @@
+# ============================================
+# MuSE Training Config (for New Dataset)
+# ============================================
+
 seed: 42
-batch_size: 8
+batch_size: 1
 optimizer: Adam
 optimizer_args:
     lr: 0.001
     amsgrad: True
 epochs: 400
 epoch_length: 2
-outputpath: experiments_muse
+outputpath: experiments_muse_new
 model: MuSE
-train_scp: data_list/train.scp
-train_dur: data_list/train_dur
-cv_scp: data_list/val.scp
-cv_dur: data_list/val_dur
-eval_scp: data_list/test.scp
-eval_dur: data_list/test_dur
+# train_scp: data_list/train.scp
+# train_dur: data_list/train_dur
+# cv_scp: data_list/val.scp
+# cv_dur: data_list/val_dur
+# eval_scp: data_list/test.scp
+# eval_dur: data_list/test_dur
+dataset_root_path: /path/to/data-bin/data-bin/train  # Path to the 'train' folder containing session_00, etc.
+mix_num: 2       # Number of speakers to mix
 loss: MuSE_loss
 n_saved: 1
 num_workers: 6

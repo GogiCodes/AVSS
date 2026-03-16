@@ -1,23 +1,34 @@
+# ============================================
+# RAVSS Testing Config (for New Dataset)
+# ============================================
+
 seed: 42
 batch_size: 1
+
 optimizer: Adam
 optimizer_args:
     lr: 0.00015
     amsgrad: True
+
 epochs: 200
 epoch_length: 2
-outputpath: experiments_RAVSS
+outputpath: experiments_new_dataset_test
 model: AV_test_RAVSS
-train_scp: data_list/voxceleb_5mix_train.csv
-val_scp: data_list/voxceleb_5mix_test.csv
-test_scp: data_list/voxceleb_3mix_test.csv
-dataset_root_path: 
-noise_dataset_path: 
+
+# ---- Dataset settings ----
+# train_scp: create_mix/mix_2_spk_tr.scp
+# val_scp: create_mix/mix_2_spk_cv.scp
+# test_scp: create_mix/mix_2_spk_tt.scp
+dataset_root_path: /path/to/data-bin/data-bin/train  # Path to the 'train' folder containing session_00, etc.
+mix_num: 2       # Number of speakers to mix
+target_num: 2    # model separates 2 sources
+
+# ---- Loss & Evaluation ----
 loss: SI_SNR_PIT
 val_loss: SI_SNR
-mix_num: 3
-target_num: 4
 pesq: PESQ
+
+# ---- Training Setup ----
 n_saved: 1
 num_workers: 6
 validate_every: 1
@@ -25,5 +36,7 @@ with_amp: False
 backend: nccl
 nproc_per_node: 4
 
-test_cdp:
-resume_from: 
+# ---- Testing / Resume ----
+# (update these after training)
+test_cdp:        # path to your trained checkpoint
+resume_from:     # same as above if you want to resume or evaluate

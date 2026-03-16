@@ -1,5 +1,8 @@
 import math
 from typing import Dict, List, Union
+import json
+import os
+import subprocess
 
 import numpy as np
 import torch
@@ -129,6 +132,166 @@ def dummy_collate_fn(x):
         return x[0]
     else:
         return x
+
+class New_Dataset(tdata.Dataset):
+    def __init__(self, mix_num, ds_root, dstype, visual_embed_type: str = 'resnet', batch_size: int = 4, max_duration: int = 6, sr: int = 16000):
+        self._dataframe = []
+        self.batch_size = batch_size
+        self.mix_num = mix_num
+        self.ds_root = ds_root
+        self.dstype = dstype
+
+        # Scan all sessions
+        sessions = [d for d in os.listdir(ds_root) if os.path.isdir(os.path.join(ds_root, d)) and d.startswith('session')]
+
+        for session in sessions:
+            session_path = os.path.join(ds_root, session)
+            metadata_path = os.path.join(session_path, 'metadata.json')
+            if not os.path.exists(metadata_path):
+                continue
+
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+
+            speakers_dir = os.path.join(session_path, 'speakers')
+            if not os.path.exists(speakers_dir):
+                continue
+
+            speakers = [d for d in os.listdir(speakers_dir) if os.path.isdir(os.path.join(speakers_dir, d)) and d.startswith('spk_')]
+
+            # For simplicity, create mixtures of mix_num speakers
+            if len(speakers) < mix_num:
+                continue
+
+            # Randomly select mix_num speakers
+            selected_speakers = random.sample(speakers, mix_num)
+
+            uid = f"{session}_{'_'.join(selected_speakers)}"
+
+            mixture_path = None  # We'll generate on the fly
+            s_paths = []
+            c_paths = []
+
+            for spk in selected_speakers:
+                spk_path = os.path.join(speakers_dir, spk)
+                # Use central_crops for now
+                crops_dir = os.path.join(spk_path, 'central_crops')
+                if os.path.exists(crops_dir):
+                    track_files = [f for f in os.listdir(crops_dir) if f.startswith('track_00') and f.endswith('.mp4')]
+                    if track_files:
+                        video_path = os.path.join(crops_dir, track_files[0])  # Assume one track
+                        audio_path = video_path.replace('.mp4', '.wav')
+                        # Extract audio if not exists
+                        if not os.path.exists(audio_path):
+                            self.extract_audio(video_path, audio_path)
+                        s_paths.append(audio_path)
+
+                        # For lip features, use the .json file
+                        json_path = os.path.join(crops_dir, 'track_00.json')
+                        c_paths.append(json_path)
+
+            if len(s_paths) == mix_num and len(c_paths) == mix_num:
+                # Calculate duration from one audio
+                if os.path.exists(s_paths[0]):
+                    audio, _ = soundfile.read(s_paths[0])
+                    duration = len(audio) / sr
+                    self._dataframe.append({
+                        'uid': uid,
+                        'mixture': None,  # Generate on fly
+                        's': s_paths,
+                        'c': c_paths,
+                        'dur': len(audio)
+                    })
+
+        self.visual_embed_type = visual_embed_type
+        self._dataframe = sorted(self._dataframe, key=lambda d: d['dur'], reverse=True)
+        self._minibatch = []
+        start = 0
+        while True:
+            end = min(len(self._dataframe), start + self.batch_size)
+            self._minibatch.append(self._dataframe[start: end])
+            if end == len(self._dataframe):
+                break
+            start = end
+
+        self.len = len(self._minibatch)
+        self._sr = sr
+        self.max_duration = max_duration
+        self.max_duration_in_samples = int(max_duration * sr)
+        self.max_duration_in_frames = int(max_duration * 25)
+
+    def extract_audio(self, video_path, audio_path):
+        """Extract audio from video using ffmpeg"""
+        command = f"ffmpeg -i {video_path} -vn -acodec pcm_s16le -ar 16000 -ac 1 {audio_path}"
+        subprocess.run(command, shell=True, check=True)
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, index):
+        batch_list = self._minibatch[index]
+        mixtures = []
+        sources = []
+        conditions = []
+        spkids = None
+
+        for meta_info in batch_list:
+            # Load sources
+            s_list = []
+            c_list = []
+            min_length = float('inf')
+
+            for s_path in meta_info['s']:
+                s, _ = soundfile.read(s_path, dtype='float32')
+                s_list.append(s)
+                min_length = min(min_length, len(s))
+
+            # Truncate all to min_length
+            for i in range(len(s_list)):
+                s_list[i] = s_list[i][:int(min_length)]
+
+            # Create mixture
+            mixture = np.sum(s_list, axis=0)
+            mixture = np.divide(mixture, np.max(np.abs(mixture)))
+
+            # Normalize sources
+            for i in range(len(s_list)):
+                s_list[i] = np.divide(s_list[i], np.max(np.abs(s_list[i])))
+
+            # Load conditions (lip features from json)
+            for c_path in meta_info['c']:
+                with open(c_path, 'r') as f:
+                    c_data = json.load(f)
+                # TODO: Adapt this based on the actual structure of track_00.json
+                # Assuming it has 'features' key with numpy array or list
+                if 'features' in c_data:
+                    c = np.array(c_data['features'])
+                elif isinstance(c_data, list):
+                    c = np.array(c_data)
+                elif isinstance(c_data, dict) and 'landmarks' in c_data:
+                    # If landmarks, perhaps flatten or process
+                    c = np.array(c_data['landmarks']).flatten()
+                else:
+                    # Fallback to random
+                    num_frames = int(min_length / self._sr * 25)
+                    c = np.random.randn(num_frames, 512)  # Placeholder
+                c_list.append(c)
+
+            # Truncate to max duration
+            mixture = mixture[:self.max_duration_in_samples]
+            for i in range(len(s_list)):
+                s_list[i] = s_list[i][:self.max_duration_in_samples]
+                c_list[i] = c_list[i][:self.max_duration_in_frames]
+
+            mixtures.append(mixture)
+            sources.append(np.array(s_list))
+            conditions.append(np.array(c_list))
+
+        mixtures = torch.tensor(np.array(mixtures))
+        sources = torch.tensor(np.array(sources))
+        conditions = torch.tensor(np.array(conditions))
+
+        return mixtures, sources, conditions, spkids
 
 if __name__ == '__main__':
     model = Vox2_Dataset()

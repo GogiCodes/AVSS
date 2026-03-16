@@ -120,16 +120,16 @@ def train(local_rank, config_parameters):
         if "cuda" in device.type:
             config_parameters["cuda device name"] = torch.cuda.get_device_name(local_rank)
   
-    train_df = config_parameters['train_scp']
-    val_df = config_parameters['val_scp']
+    # train_df = config_parameters['train_scp']
+    # val_df = config_parameters['val_scp']
     ds_root = config_parameters['dataset_root_path']
 
     #for lrs3
     # train_ds = dataset_lrs3.Vox2_Dataset(train_df, ds_root, dstype='trainval', batch_size = config_parameters['batch_size'], max_duration=4)
     # val_ds = dataset_lrs3.Vox2_Dataset(val_df, ds_root, dstype='trainval',batch_size = config_parameters['batch_size'])
     #for vox
-    train_ds = dataset_condition_target.Vox2_Dataset(config_parameters['mix_num'], train_df, ds_root, dstype='dev', batch_size = config_parameters['batch_size'], max_duration=4)
-    val_ds = dataset_condition_target_val.Vox2_Dataset(config_parameters['mix_num'], val_df, ds_root, dstype='test',batch_size = 1)   
+    train_ds = dataset.New_Dataset(config_parameters['mix_num'], ds_root, dstype='dev', batch_size = config_parameters['batch_size'], max_duration=4)
+    val_ds = dataset.New_Dataset(config_parameters['mix_num'], ds_root, dstype='test',batch_size = 1)   
     nproc = idist.get_nproc_per_node() #batch_size on each node
     train_loader = idist.auto_dataloader(train_ds, batch_size=nproc, num_workers=config_parameters['num_workers'] * nproc, shuffle=True, drop_last=True, collate_fn = dataset.dummy_collate_fn)
     val_loader = idist.auto_dataloader(val_ds, batch_size=nproc, num_workers=config_parameters['num_workers'] * nproc, shuffle=False, drop_last=True, collate_fn = dataset.dummy_collate_fn)
