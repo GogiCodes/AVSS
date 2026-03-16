@@ -1,0 +1,17 @@
+# Requirements for RAVSS training (audio-visual speech separation)
+# Update versions as needed for your environment.
+
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+numpy>=1.25
+scipy>=1.11
+soundfile>=0.12.1
+PyYAML>=6.0
+fire>=0.7.1
+pytorch-ignite>=0.5.2
+einops>=0.8.0
+
+# Optional (only if you use any extra scripts that require these)
+# tqdm>=4.0
+# pandas>=2.0

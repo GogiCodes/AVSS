@@ -19,7 +19,7 @@ model: AV_8_Sepformer
 # train_scp: create_mix/mix_2_spk_tr.scp
 # val_scp: create_mix/mix_2_spk_cv.scp
 # test_scp: create_mix/mix_2_spk_tt.scp
-dataset_root_path: /path/to/data-bin/data-bin/train  # Path to the 'train' folder containing session_00, etc.
+dataset_root_path: /path/to/AVSS/data-bin/train  # Update this to your absolute path, e.g., /home/youruser/AVSS/data-bin/train
 mix_num: 2       # Number of speakers to mix
 
 # ---- Loss & Evaluation ----
