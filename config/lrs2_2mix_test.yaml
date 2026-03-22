@@ -1,0 +1,29 @@
+seed: 42
+batch_size: 2
+optimizer: Adam
+optimizer_args:
+    lr: 0.00015
+    amsgrad: True
+epochs: 100
+epoch_length: 2
+outputpath: experiments_LRS2
+model: AV_test_RAVSS
+train_scp: 
+val_scp: 
+test_scp: lrs2_rebuild/test.txt
+dataset_root_path: lrs2_rebuild
+noise_dataset_path: 
+loss: SI_SNR_PIT
+val_loss: SI_SNR
+mix_num: 2
+target_num: 1
+pesq: PESQ
+n_saved: 1
+num_workers: 4
+validate_every: 1
+with_amp: False
+backend: nccl
+nproc_per_node: 1
+
+test_cdp: 
+resume_from: 

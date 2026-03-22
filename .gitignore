@@ -1,0 +1,63 @@
+# Large datasets - DO NOT PUSH TO GITHUB
+lrs2_rebuild/
+LRS2-2Mix/
+*.tar.gz
+*.zip
+*.7z
+
+# Experiment outputs and logs
+experiments_*/
+experiments/
+*.log
+*.txt~
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Model checkpoints (too large)
+*.pth
+*.pt
+*.ckpt
+checkpoint_*/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
